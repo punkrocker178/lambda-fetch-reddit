@@ -4,7 +4,7 @@ const redditBaseURL = 'https://www.reddit.com/';
 exports.handler = async (event, context, callback) => {
     // TODO implement
     let data;
-    let path = createPath(event);
+    let path = createPath(event.path);
     let options = {
         method: event.httpMethod,
         headers: buildRequestHeaders()
@@ -28,7 +28,7 @@ exports.handler = async (event, context, callback) => {
 
 function createPath(eventPath) {
     let diffRegex = /\/gw\/(?!\/[\D]+)/;
-    let path = eventPath.path.replace(diffRegex, '');
+    let path = eventPath.replace(diffRegex, '');
     let apiPath = new url.URL(url.resolve(redditBaseURL, path));
 
     if (eventPath.queryStringParameters) {
