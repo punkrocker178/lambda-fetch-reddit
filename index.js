@@ -1,16 +1,23 @@
 const fetch = require('node-fetch');
 const url = require('url');
-const redditBaseURL = 'https://www.reddit.com/';
+const redditBaseURL = 'https://oauth.reddit.com/';
 exports.handler = async (event, context, callback) => {
     // TODO implement
     let data;
-    let path = createPath(event.path);
+    let path = createPath(event);
     let options = {
         method: event.httpMethod,
-        headers: buildRequestHeaders()
+        headers: buildRequestHeaders(event.headers)
     }
 
-    return fetch(path, options)
+    let fetchPromise;
+
+    if (event.httpMethod === 'POST') {
+        let body = JSON.parse(event.body);
+        options.body = body;
+    }
+
+    fetchPromise = fetch(path, options)
         .then((res) => {
             res = handleErrors(res);
             return res.json();
@@ -24,11 +31,12 @@ exports.handler = async (event, context, callback) => {
             const errorResponse = buildResponse(error.statusCode, error);
             return errorResponse;
         });
+    return fetchPromise;
 };
 
 function createPath(eventPath) {
-    let diffRegex = /\/gw\/(?!\/[\D]+)/;
-    let path = eventPath.replace(diffRegex, '');
+    let diffRegex = /\/oauth\/(?!\/[\D]+)/;
+    let path = eventPath.path.replace(diffRegex, '');
     let apiPath = new url.URL(url.resolve(redditBaseURL, path));
 
     if (eventPath.queryStringParameters) {
@@ -52,22 +60,21 @@ function buildResponse(statusCode, data) {
     return response;
 }
 
-function buildRequestHeaders(authen) {
-    let headers = new fetch.Headers({
-        'Accept': 'application/json',
+function buildRequestHeaders(headers) {
+
+    let myHeaders = new fetch.Headers({
+        'Authorization': headers.Authorization ? headers.Authorization : '',
         'User-Agent': 'desktop:r2_7JfrpPUeQyA:v0.0.1 (by /u/SteelBeast177)'
     });
-    if (authen) {
-        headers.append('Authorization','Bearer ' + '');
-    }
-    return headers;
+
+    return myHeaders;
 }
 
 function handleErrors(response) {
     if (!response.ok) {
         throw {
-            statusCode: res.status,
-            message: res.statusText
+            statusCode: response.status,
+            message: response.statusText
         }
     }
     return response;
