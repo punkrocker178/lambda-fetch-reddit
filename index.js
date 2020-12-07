@@ -13,7 +13,14 @@ exports.handler = async (event, context, callback) => {
     let fetchPromise;
 
     if (event.httpMethod === 'POST') {
-        let body = JSON.parse(event.body);
+        let body = event.body;
+        
+        if (event.headers['content-type'] === 'application/json') {
+           body = JSON.parse(event.body);
+        } else if (event.headers['content-type'] === 'application/x-www-form-urlencoded') {
+            body = new url.URLSearchParams(event.body);
+        }
+        
         options.body = body;
     }
 
@@ -55,8 +62,10 @@ function buildResponse(statusCode, data) {
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'OPTIONS,POST,GET,PUT,DELETE'
-    }
-    response.body = JSON.stringify(data);
+    };
+    
+    response.body = JSON.stringify(data);    
+    
     return response;
 }
 
@@ -71,6 +80,7 @@ function buildRequestHeaders(headers) {
 }
 
 function handleErrors(response) {
+    console.log(response);
     if (!response.ok) {
         throw {
             statusCode: response.status,
